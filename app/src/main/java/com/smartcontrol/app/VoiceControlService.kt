@@ -81,7 +81,7 @@ class VoiceControlService : Service() {
     private fun scheduleRestart(delay: Long = 700) {
         restarting = false
         handler.removeCallbacksAndMessages(null)
-        handler.postDelayed({ if (Build.VERSION.SDK_INT < 31 || !isDestroyed) startRecognition() }, delay)
+        handler.postDelayed({ startRecognition() }, delay)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_NOT_STICKY
