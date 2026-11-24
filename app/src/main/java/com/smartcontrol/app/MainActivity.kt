@@ -1,22 +1,25 @@
 package com.smartcontrol.app
 
 import android.Manifest
+import android.accessibilityservice.AccessibilityService
 import android.app.Activity
+import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.speech.SpeechRecognizer
-import android.media.AudioManager
+import android.view.Gravity
 import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
-import android.graphics.Color
-import android.view.Gravity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import java.text.Normalizer
 import java.util.Locale
 
 class MainActivity : Activity() {
@@ -25,7 +28,6 @@ class MainActivity : Activity() {
     private lateinit var voiceButton: Button
     private lateinit var gestureButton: Button
     private val prefs by lazy { getSharedPreferences("smart_control", MODE_PRIVATE) }
-    private val audio by lazy { getSystemService(AUDIO_SERVICE) as AudioManager }
 
     private fun masterOn() = prefs.getBoolean("master_on", false)
     private fun voiceOn() = prefs.getBoolean("voice_on", false)
@@ -35,88 +37,104 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
         buildUi()
         refreshButtons()
-        if (!SpeechRecognizer.isRecognitionAvailable(this)) status.text = "التعرف على الصوت غير متاح على هذا الجهاز."
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            status.text = "خدمة التعرف على الكلام غير متاحة على الجهاز. ثبّت أو فعّل Speech Services by Google."
+        }
     }
 
     private fun buildUi() {
-        val layout = LinearLayout(this).apply {
+        val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            setPadding(24, 24, 24, 24)
-            setBackgroundColor(Color.rgb(15, 23, 42))
+            gravity = Gravity.CENTER_HORIZONTAL
+            setPadding(24, 28, 24, 28)
+            setBackgroundColor(Color.rgb(9, 16, 32))
         }
         val title = TextView(this).apply {
-            text = "SmartControl"
-            textSize = 30f
+            text = "ELSAYYAD"
+            textSize = 13f
+            letterSpacing = 0.28f
+            setTextColor(Color.rgb(45, 212, 191))
+            gravity = Gravity.CENTER
+        }
+        val subtitle = TextView(this).apply {
+            text = "SMART CONTROL"
+            textSize = 29f
+            letterSpacing = 0.05f
             setTextColor(Color.WHITE)
             gravity = Gravity.CENTER
         }
-        val byline = TextView(this).apply {
-            text = "by Elsayyad"
-            textSize = 14f
-            setTextColor(Color.rgb(103, 232, 249))
+        val tagline = TextView(this).apply {
+            text = "تحكّم في هاتفك بالصوت وإشارات اليد"
+            textSize = 15f
+            setTextColor(Color.rgb(148, 163, 184))
             gravity = Gravity.CENTER
+            setPadding(0, 8, 0, 18)
         }
         status = TextView(this).apply {
-            text = "فعّل التحكم العام، ثم شغّل الصوت أو إشارات اليد."
-            textSize = 16f
+            text = "ابدأ بتفعيل التحكم العام، ثم اختر الصوت أو إشارات اليد."
+            textSize = 15f
             setTextColor(Color.WHITE)
             gravity = Gravity.CENTER
-            setPadding(0, 18, 0, 18)
+            setPadding(14, 18, 14, 18)
+            setBackgroundColor(Color.rgb(22, 35, 58))
         }
-        masterButton = Button(this).apply {
-            setOnClickListener { toggleMaster() }
-        }
-        voiceButton = Button(this).apply {
-            setOnClickListener { toggleVoice() }
-        }
-        gestureButton = Button(this).apply {
-            setOnClickListener { toggleGestures() }
-        }
-        val accessButton = Button(this).apply {
-            text = "تفعيل صلاحية التحكم العام"
+        masterButton = makeButton()
+        masterButton.setOnClickListener { toggleMaster() }
+        voiceButton = makeButton()
+        voiceButton.setOnClickListener { toggleVoice() }
+        gestureButton = makeButton()
+        gestureButton.setOnClickListener { toggleGestures() }
+        val accessButton = makeButton("فتح إعدادات إمكانية الوصول").apply {
             setOnClickListener { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
         }
-        val permissionButton = Button(this).apply {
-            text = "إدارة صلاحيات الكاميرا والمايك والتحكم"
+        val permissionButton = makeButton("إدارة أذونات الكاميرا والميكروفون").apply {
             setOnClickListener {
-                prefs.edit().putBoolean("master_on", false).putBoolean("voice_on", false).putBoolean("gestures_on", false).apply()
-                stopAllServices()
-                refreshButtons()
-                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName"))
-                startActivity(intent)
-                status.text = "أوقفنا خدمات التطبيق. لإلغاء الصلاحيات نهائيًا ألغِ الكاميرا والميكروفون من صفحة معلومات التطبيق، وأوقف SmartControl من إعدادات إمكانية الوصول."
+                disableEverything()
+                startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
+                status.text = "أوقفنا الخدمات. يمكنك مراجعة أذونات الكاميرا والميكروفون من صفحة التطبيق."
             }
         }
         val help = TextView(this).apply {
-            text = "الأوامر الصوتية: قل «افتح» ثم اسم التطبيق، أو قل رجوع، الرئيسية، الإشعارات، الإعدادات، ارفع الصوت، اخفض الصوت، مرر لأعلى أو لأسفل.\n\nإشارات اليد: الإبهام لأعلى/لأسفل للتمرير، وتحريك أربعة أصابع لأعلى/لأسفل للتحكم بالصوت."
+            text = "الأوامر الصوتية\n«افتح واتساب» • «افتح يوتيوب» • «افتح فيسبوك» • «ارجع» • «الرئيسية» • «ارفع الصوت» • «اخفض الصوت» • «مرر لفوق» • «مرر لتحت»\n\nإشارات اليد\nالإبهام لأعلى/لأسفل للتمرير. حرّك أربعة أصابع لأعلى/لأسفل للتحكم في الصوت. اقبض يدك للرجوع.\n\nمهم: يلزم تفعيل خدمة SmartControl من إعدادات إمكانية الوصول حتى تعمل أوامر التحكم خارج التطبيق."
             textSize = 14f
-            setTextColor(Color.LTGRAY)
+            setTextColor(Color.rgb(203, 213, 225))
             gravity = Gravity.CENTER
-            setPadding(0, 14, 0, 0)
+            setPadding(8, 20, 8, 8)
         }
-        listOf(title, byline, status, masterButton, voiceButton, gestureButton, accessButton, permissionButton, help).forEach {
-            layout.addView(it)
-        }
-        setContentView(layout)
+        listOf(title, subtitle, tagline, status, masterButton, voiceButton, gestureButton, accessButton, permissionButton, help)
+            .forEach { root.addView(it, LinearLayout.LayoutParams(-1, LinearLayout.LayoutParams.WRAP_CONTENT).apply { bottomMargin = 10 }) }
+        val scroll = ScrollView(this).apply { addView(root) }
+        setContentView(scroll)
+    }
+
+    private fun makeButton(label: String = "") = Button(this).apply {
+        text = label
+        isAllCaps = false
+        textSize = 15f
     }
 
     private fun refreshButtons() {
-        masterButton.text = if (masterOn()) "إيقاف SmartControl بالكامل" else "تفعيل SmartControl"
+        masterButton.text = if (masterOn()) "إيقاف التحكم بالكامل" else "تفعيل التحكم"
         voiceButton.text = if (voiceOn()) "إيقاف الأوامر الصوتية" else "تشغيل الأوامر الصوتية"
-        gestureButton.text = if (gesturesOn()) "إيقاف أوامر الإشارة" else "تشغيل أوامر الإشارة"
+        gestureButton.text = if (gesturesOn()) "إيقاف إشارات اليد" else "تشغيل إشارات اليد"
         voiceButton.isEnabled = masterOn()
         gestureButton.isEnabled = masterOn()
     }
 
+    private fun disableEverything() {
+        prefs.edit().putBoolean("master_on", false).putBoolean("voice_on", false).putBoolean("gestures_on", false).apply()
+        stopService(Intent(this, VoiceControlService::class.java))
+        stopService(Intent(this, GestureCameraService::class.java))
+        refreshButtons()
+    }
+
     private fun toggleMaster() {
         if (masterOn()) {
-            prefs.edit().putBoolean("master_on", false).putBoolean("voice_on", false).putBoolean("gestures_on", false).apply()
-            stopAllServices()
-            status.text = "تم إيقاف الصوت والكاميرا وخدمات التحكم. الصلاحيات التي منحها أندرويد لا يمكن للتطبيق إلغاؤها بنفسه؛ استخدم زر إدارة الصلاحيات لإلغائها يدويًا."
+            disableEverything()
+            status.text = "تم إيقاف خدمات الصوت والكاميرا. أندرويد لا يسمح للتطبيق بإلغاء أذوناته بنفسه."
         } else {
             prefs.edit().putBoolean("master_on", true).apply()
-            status.text = "تم تفعيل SmartControl. شغّل الصوت أو الإشارات كلٌ على حدة."
+            status.text = "التحكم مفعّل. شغّل الصوت أو إشارات اليد."
         }
         refreshButtons()
     }
@@ -133,12 +151,17 @@ class MainActivity : Activity() {
                 return
             }
             if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-                status.text = "خدمة التعرف على الصوت غير متاحة."
+                status.text = "فعّل Speech Services by Google أو خدمة التعرف على الكلام أولاً."
                 return
             }
             prefs.edit().putBoolean("voice_on", true).apply()
-            ContextCompat.startForegroundService(this, Intent(this, VoiceControlService::class.java))
-            status.text = "الأوامر الصوتية تعمل في الخلفية. يمكنك الانتقال لأي تطبيق."
+            try {
+                ContextCompat.startForegroundService(this, Intent(this, VoiceControlService::class.java))
+                status.text = "بدأ الاستماع في الخلفية. اترك إشعار SmartControl ظاهرًا أثناء الاستخدام."
+            } catch (e: Exception) {
+                prefs.edit().putBoolean("voice_on", false).apply()
+                status.text = "تعذّر تشغيل الميكروفون: ${e.localizedMessage ?: "تحقق من الأذونات"}"
+            }
         }
         refreshButtons()
     }
@@ -148,22 +171,33 @@ class MainActivity : Activity() {
         if (gesturesOn()) {
             prefs.edit().putBoolean("gestures_on", false).apply()
             stopService(Intent(this, GestureCameraService::class.java))
-            status.text = "تم إيقاف الكاميرا والتحكم بالإشارات."
+            status.text = "تم إيقاف الكاميرا وإشارات اليد."
         } else {
+            if (!isAccessibilityEnabled()) {
+                status.text = "فعّل خدمة Elsayyad Smart Control من إعدادات إمكانية الوصول أولاً، ثم ارجع وشغّل الإشارات."
+                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                return
+            }
             if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), 11)
                 return
             }
             prefs.edit().putBoolean("gestures_on", true).apply()
-            ContextCompat.startForegroundService(this, Intent(this, GestureCameraService::class.java))
-            status.text = "إشارات اليد تعمل في الخلفية. ستظهر علامة خدمة الكاميرا أثناء التشغيل."
+            try {
+                ContextCompat.startForegroundService(this, Intent(this, GestureCameraService::class.java))
+                status.text = "الكاميرا بدأت تتبع اليد. استخدم إشارة واضحة أمام الكاميرا الأمامية."
+            } catch (e: Exception) {
+                prefs.edit().putBoolean("gestures_on", false).apply()
+                status.text = "تعذّر تشغيل الكاميرا: ${e.localizedMessage ?: "تحقق من الأذونات"}"
+            }
         }
         refreshButtons()
     }
 
-    private fun stopAllServices() {
-        stopService(Intent(this, VoiceControlService::class.java))
-        stopService(Intent(this, GestureCameraService::class.java))
+    private fun isAccessibilityEnabled(): Boolean {
+        val expected = ComponentName(this, ControlAccessibilityService::class.java)
+        val enabled = Settings.Secure.getString(contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES).orEmpty()
+        return enabled.split(':').any { ComponentName.unflattenFromString(it) == expected }
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
@@ -171,34 +205,52 @@ class MainActivity : Activity() {
         if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             when (requestCode) {
                 10 -> { prefs.edit().putBoolean("master_on", true).putBoolean("voice_on", true).apply(); ContextCompat.startForegroundService(this, Intent(this, VoiceControlService::class.java)); status.text = "الأوامر الصوتية تعمل." }
-                11 -> { prefs.edit().putBoolean("master_on", true).putBoolean("gestures_on", true).apply(); ContextCompat.startForegroundService(this, Intent(this, GestureCameraService::class.java)); status.text = "إشارات اليد تعمل." }
+                11 -> {
+                    if (!isAccessibilityEnabled()) {
+                        prefs.edit().putBoolean("gestures_on", false).apply()
+                        status.text = "الكاميرا مسموح بها. فعّل إمكانية الوصول ثم شغّل الإشارات."
+                        startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                    } else {
+                        prefs.edit().putBoolean("master_on", true).putBoolean("gestures_on", true).apply()
+                        ContextCompat.startForegroundService(this, Intent(this, GestureCameraService::class.java))
+                        status.text = "إشارات اليد تعمل."
+                    }
+                }
             }
-        } else status.text = "لم يتم منح الصلاحية المطلوبة."
+        } else status.text = "لم يتم منح الإذن المطلوب."
         refreshButtons()
     }
 
     override fun onResume() { super.onResume(); refreshButtons() }
 
     companion object {
+        private fun normalize(value: String): String {
+            val noMarks = Normalizer.normalize(value.lowercase(Locale("ar", "EG")), Normalizer.Form.NFD)
+                .replace(Regex("\\p{Mn}+"), "")
+            return noMarks.replace("أ", "ا").replace("إ", "ا").replace("آ", "ا")
+                .replace(Regex("[^\\p{L}\\p{N} ]"), " ").replace(Regex("\\s+"), " ").trim()
+        }
+
         fun executeCommand(context: android.content.Context, raw: String) {
-            val s = raw.lowercase(Locale("ar", "EG")).replace("أ", "ا").replace("إ", "ا").replace("آ", "ا")
-            val service = ControlAccessibilityService.instance
-            val audio = context.getSystemService(android.content.Context.AUDIO_SERVICE) as AudioManager
+            val s = normalize(raw)
+            val access = ControlAccessibilityService.instance
+            val audio = context.getSystemService(android.content.Context.AUDIO_SERVICE) as android.media.AudioManager
             when {
-                s.contains("ارجع") || s.contains("رجوع") || s.contains("ورا") -> service?.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK)
-                s.contains("الرئيسية") || s.contains("الشاشة الرئيسية") -> service?.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_HOME)
-                s.contains("الاشعارات") || s.contains("اشعارات") -> service?.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS)
+                listOf("ارجع", "رجوع", "ورا", "back").any(s::contains) -> access?.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK)
+                listOf("الرئيسيه", "الشاشه الرئيسيه", "افتح الرئيسيه", "home").any(s::contains) -> access?.performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME)
+                listOf("الاشعارات", "اشعارات", "افتح الاشعارات").any(s::contains) -> access?.performGlobalAction(AccessibilityService.GLOBAL_ACTION_NOTIFICATIONS)
                 s.contains("الاعدادات") -> launchPackage(context, "com.android.settings")
-                s.contains("ارفع الصوت") || s.contains("علي الصوت") -> audio.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE, AudioManager.FLAG_SHOW_UI)
-                s.contains("اخفض الصوت") || s.contains("وطي الصوت") -> audio.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER, AudioManager.FLAG_SHOW_UI)
-                s.contains("اكتم الصوت") -> audio.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0)
-                s.contains("مرر لفوق") || s.contains("اسكرول لفوق") || s.contains("اطلع لفوق") -> service?.swipe(true)
-                s.contains("مرر لتحت") || s.contains("اسكرول لتحت") || s.contains("انزل لتحت") -> service?.swipe(false)
+                listOf("ارفع الصوت", "علي الصوت", "زود الصوت").any(s::contains) -> audio.adjustStreamVolume(android.media.AudioManager.STREAM_MUSIC, android.media.AudioManager.ADJUST_RAISE, android.media.AudioManager.FLAG_SHOW_UI)
+                listOf("اخفض الصوت", "وطي الصوت", "قلل الصوت").any(s::contains) -> audio.adjustStreamVolume(android.media.AudioManager.STREAM_MUSIC, android.media.AudioManager.ADJUST_LOWER, android.media.AudioManager.FLAG_SHOW_UI)
+                listOf("اكتم الصوت", "اقفل الصوت").any(s::contains) -> audio.adjustStreamVolume(android.media.AudioManager.STREAM_MUSIC, android.media.AudioManager.ADJUST_MUTE, 0)
+                listOf("مرر لفوق", "اسكرول لفوق", "اطلع لفوق", "انزل لفوق").any(s::contains) -> access?.swipe(true)
+                listOf("مرر لتحت", "اسكرول لتحت", "انزل لتحت").any(s::contains) -> access?.swipe(false)
                 s.contains("كاميرا") -> try { context.startActivity(Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (_: Exception) {}
                 else -> {
-                    val requested = s.removePrefix("افتح").removePrefix("شغل").trim()
+                    val requested = s.replace(Regex("^(من فضلك )?(افتح|شغل|روح|ادخل)(لي)?( تطبيق)? "), "")
+                        .replace(Regex("^(من فضلك )?(افتح|شغل|روح|ادخل)(لي)?$"), "").trim()
                     if (requested.isNotBlank()) launchByName(context, requested)
-                    else Toast.makeText(context, "لم أفهم الأمر. جرّب: افتح واتساب", Toast.LENGTH_SHORT).show()
+                    else Toast.makeText(context, "لم أفهم الأمر. مثال: افتح واتساب", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -206,36 +258,37 @@ class MainActivity : Activity() {
         private fun launchPackage(context: android.content.Context, pkg: String) {
             val intent = context.packageManager.getLaunchIntentForPackage(pkg)?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             if (intent != null) context.startActivity(intent)
-            else Toast.makeText(context, "التطبيق غير مثبت", Toast.LENGTH_SHORT).show()
+            else Toast.makeText(context, "التطبيق غير مثبت أو لا يملك شاشة تشغيل.", Toast.LENGTH_SHORT).show()
         }
 
         private fun launchByName(context: android.content.Context, requested: String) {
-            val aliases = mapOf(
-                "واتساب" to "com.whatsapp", "واتس" to "com.whatsapp", "فيسبوك" to "com.facebook.katana",
-                "فيس" to "com.facebook.katana", "ماسنجر" to "com.facebook.orca", "انستجرام" to "com.instagram.android",
-                "انستا" to "com.instagram.android", "تيك توك" to "com.zhiliaoapp.musically", "تيكتوك" to "com.zhiliaoapp.musically",
-                "يوتيوب" to "com.google.android.youtube", "تليجرام" to "org.telegram.messenger", "تلجرام" to "org.telegram.messenger",
-                "سناب شات" to "com.snapchat.android", "سناب" to "com.snapchat.android", "اكس" to "com.twitter.android",
-                "تويتر" to "com.twitter.android", "لينكد ان" to "com.linkedin.android", "بنترست" to "com.pinterest",
-                "سبوتيفاي" to "com.spotify.music", "جيميل" to "com.google.android.gm", "خرائط جوجل" to "com.google.android.apps.maps",
-                "جوجل كروم" to "com.android.chrome", "كروم" to "com.android.chrome", "جوجل" to "com.google.android.googlequicksearchbox",
-                "جوجل درايف" to "com.google.android.apps.docs", "صور جوجل" to "com.google.android.apps.photos",
-                "جوجل بلاي" to "com.android.vending", "متجر بلاي" to "com.android.vending", "الكاميرا" to "camera"
+            val aliases = linkedMapOf(
+                "خرائط جوجل" to "com.google.android.apps.maps", "جوجل درايف" to "com.google.android.apps.docs",
+                "صور جوجل" to "com.google.android.apps.photos", "سناب شات" to "com.snapchat.android",
+                "تيك توك" to "com.zhiliaoapp.musically", "لينكد ان" to "com.linkedin.android",
+                "ماسنجر" to "com.facebook.orca", "انستجرام" to "com.instagram.android",
+                "فيسبوك" to "com.facebook.katana", "تليجرام" to "org.telegram.messenger",
+                "تلجرام" to "org.telegram.messenger", "يوتيوب" to "com.google.android.youtube",
+                "واتساب" to "com.whatsapp", "واتس" to "com.whatsapp", "فيس" to "com.facebook.katana",
+                "انستا" to "com.instagram.android", "تيكتوك" to "com.zhiliaoapp.musically",
+                "سناب" to "com.snapchat.android", "تويتر" to "com.twitter.android", "اكس" to "com.twitter.android",
+                "بنترست" to "com.pinterest", "سبوتيفاي" to "com.spotify.music", "جيميل" to "com.google.android.gm",
+                "كروم" to "com.android.chrome", "جوجل كروم" to "com.android.chrome",
+                "جوجل بلاي" to "com.android.vending", "متجر بلاي" to "com.android.vending"
             )
-            val match = aliases.entries.firstOrNull { requested.contains(it.key) }
-            if (match != null) {
-                if (match.value == "camera") {
-                    try { context.startActivity(Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (_: Exception) {}
-                } else launchPackage(context, match.value)
-                return
-            }
-            val apps = context.packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
-            val app = apps.firstOrNull {
-                context.packageManager.getApplicationLabel(it).toString().lowercase(Locale("ar", "EG")).contains(requested)
-            }
-            if (app != null) {
-                context.packageManager.getLaunchIntentForPackage(app.packageName)?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)?.let { context.startActivity(it) }
-            } else Toast.makeText(context, "مش لاقي تطبيق باسم $requested", Toast.LENGTH_SHORT).show()
+            val key = aliases.keys.sortedByDescending { it.length }.firstOrNull { requested.contains(it) }
+            if (key != null) { launchPackage(context, aliases.getValue(key)); return }
+
+            val pm = context.packageManager
+            val apps = pm.getInstalledApplications(PackageManager.GET_META_DATA)
+            val target = apps.firstOrNull { normalize(pm.getApplicationLabel(it).toString()) == requested }
+                ?: apps.firstOrNull {
+                    val label = normalize(pm.getApplicationLabel(it).toString())
+                    label.isNotBlank() && (label.contains(requested) || requested.contains(label))
+                }
+            val launch = target?.let { pm.getLaunchIntentForPackage(it.packageName) }
+            if (launch != null) context.startActivity(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            else Toast.makeText(context, "مش لاقي تطبيق باسم «$requested». جرّب نطق اسمه بوضوح.", Toast.LENGTH_LONG).show()
         }
     }
 }
