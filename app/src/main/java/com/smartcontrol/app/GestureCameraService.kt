@@ -112,7 +112,6 @@ class GestureCameraService : LifecycleService() {
                 .setRotationDegrees(proxy.imageInfo.rotationDegrees)
                 .build()
             handLandmarker?.detectAsync(image, processing, SystemClock.uptimeMillis())
-            bitmap.recycle()
         } catch (e: Exception) {
             Log.e(TAG, "Frame analysis failed", e)
         } finally {
