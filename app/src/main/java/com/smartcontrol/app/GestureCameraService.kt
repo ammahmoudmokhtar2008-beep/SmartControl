@@ -49,7 +49,9 @@ class GestureCameraService : LifecycleService() {
                 .setMinHandDetectionConfidence(0.55f)
                 .setMinHandPresenceConfidence(0.55f)
                 .setMinTrackingConfidence(0.5f)
-                .setResultListener { result, inputImage ->\n                    try { onHandResult(result) } finally { inputImage.close() }\n                }
+                .setResultListener { result, inputImage ->
+                    try { onHandResult(result) } finally { inputImage.close() }
+                }
                 .setErrorListener { error -> Log.e(TAG, "Hand tracking error", error) }
                 .build()
             handLandmarker = HandLandmarker.createFromOptions(this, options)
