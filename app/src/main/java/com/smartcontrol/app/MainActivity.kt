@@ -181,7 +181,7 @@ class MainActivity : Activity() {
         fun executeCommand(context: android.content.Context, raw: String) {
             val s = raw.lowercase(Locale("ar", "EG")).replace("أ", "ا").replace("إ", "ا").replace("آ", "ا")
             val service = ControlAccessibilityService.instance
-            val audio = context.getSystemService(AUDIO_SERVICE) as AudioManager
+            val audio = context.getSystemService(android.content.Context.AUDIO_SERVICE) as AudioManager
             when {
                 s.contains("ارجع") || s.contains("رجوع") || s.contains("ورا") -> service?.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK)
                 s.contains("الرئيسية") || s.contains("الشاشة الرئيسية") -> service?.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_HOME)
