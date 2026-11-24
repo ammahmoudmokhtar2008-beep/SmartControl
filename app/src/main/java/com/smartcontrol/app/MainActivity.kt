@@ -80,7 +80,9 @@ class MainActivity : Activity() {
         val permissionButton = Button(this).apply {
             text = "إدارة صلاحيات الكاميرا والمايك والتحكم"
             setOnClickListener {
+                prefs.edit().putBoolean("master_on", false).putBoolean("voice_on", false).putBoolean("gestures_on", false).apply()
                 stopAllServices()
+                refreshButtons()
                 val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName"))
                 startActivity(intent)
                 status.text = "أوقفنا خدمات التطبيق. لإلغاء الصلاحيات نهائيًا ألغِ الكاميرا والميكروفون من صفحة معلومات التطبيق، وأوقف SmartControl من إعدادات إمكانية الوصول."
