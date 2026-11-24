@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Smart Control</string>
+    <string name="accessibility_description">يسمح لـ Smart Control بتنفيذ أوامر التنقل والإيماءات بعد تفعيل الخدمة يدويًا.</string>
+</resources>
