@@ -143,7 +143,7 @@ class GestureCameraService : LifecycleService() {
         when {
             fingersUp == 4 -> {
                 lastCommandAt = now
-                service?.performGlobalAction(GLOBAL_ACTION_HOME)
+                service?.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_HOME)
             }
             fingersUp == 0 && thumbUp -> {
                 lastCommandAt = now
@@ -155,7 +155,7 @@ class GestureCameraService : LifecycleService() {
             }
             fingersUp == 0 -> {
                 lastCommandAt = now
-                service?.performGlobalAction(GLOBAL_ACTION_BACK)
+                service?.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK)
             }
         }
     }
