@@ -17,20 +17,20 @@ import android.widget.Toast
 import android.graphics.Color
 import android.view.Gravity
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import java.util.Locale
 
 class MainActivity : Activity() {
     private var recognizer: SpeechRecognizer? = null
     private lateinit var status: TextView
-    private lateinit var listenButton: Button
+    private lateinit var gestureButton: Button
     private val audio by lazy { getSystemService(AUDIO_SERVICE) as AudioManager }
+    private var gestureModeOn = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         buildUi()
-        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-            status.text = "التعرف على الصوت غير متاح على هذا الجهاز."
-        }
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) status.text = "التعرف على الصوت غير متاح على هذا الجهاز."
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 10)
         }
@@ -40,7 +40,7 @@ class MainActivity : Activity() {
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setPadding(28, 28, 28, 28)
+            setPadding(24, 24, 24, 24)
             setBackgroundColor(Color.rgb(15, 23, 42))
         }
         val title = TextView(this).apply {
@@ -54,9 +54,9 @@ class MainActivity : Activity() {
             textSize = 17f
             setTextColor(Color.WHITE)
             gravity = Gravity.CENTER
-            setPadding(0, 28, 0, 28)
+            setPadding(0, 20, 0, 20)
         }
-        listenButton = Button(this).apply {
+        val listenButton = Button(this).apply {
             text = "ابدأ الاستماع"
             setOnClickListener { startListening() }
         }
@@ -64,19 +64,55 @@ class MainActivity : Activity() {
             text = "تفعيل صلاحية التحكم"
             setOnClickListener { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
         }
+        gestureButton = Button(this).apply {
+            text = "تشغيل التحكم بإشارات اليد"
+            setOnClickListener { toggleGestureMode() }
+        }
         val help = TextView(this).apply {
-            text = "أمثلة: ارجع، الرئيسية، افتح الإشعارات، افتح الإعدادات، ارفع الصوت، اخفض الصوت، مرر لأعلى، مرر لأسفل."
-            textSize = 15f
+            text = "الأوامر الصوتية: ارجع، الرئيسية، الإشعارات، الإعدادات، واتساب، الكاميرا، ارفع الصوت، اخفض الصوت، مرر لأعلى أو لأسفل.\n\nإشارات اليد: كف مفتوح = الرئيسية، قبضة = رجوع، إبهام لأعلى/لأسفل = رفع/خفض الصوت، تحريك اليد يمينًا/يسارًا = تمرير أفقي."
+            textSize = 14f
             setTextColor(Color.LTGRAY)
             gravity = Gravity.CENTER
-            setPadding(0, 24, 0, 0)
+            setPadding(0, 18, 0, 0)
         }
         layout.addView(title)
         layout.addView(status)
         layout.addView(listenButton)
         layout.addView(accessButton)
+        layout.addView(gestureButton)
         layout.addView(help)
         setContentView(layout)
+    }
+
+    private fun toggleGestureMode() {
+        if (gestureModeOn) {
+            stopService(Intent(this, GestureCameraService::class.java))
+            gestureModeOn = false
+            gestureButton.text = "تشغيل التحكم بإشارات اليد"
+            status.text = "تم إيقاف التحكم بالإشارات."
+            return
+        }
+        if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), 11)
+            return
+        }
+        startGestureMode()
+    }
+
+    private fun startGestureMode() {
+        if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) return
+        ContextCompat.startForegroundService(this, Intent(this, GestureCameraService::class.java))
+        gestureModeOn = true
+        gestureButton.text = "إيقاف التحكم بإشارات اليد"
+        status.text = "وضع الإشارات يعمل في الخلفية. راجع الإشعار للتأكد من تشغيله."
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 11) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) startGestureMode()
+            else Toast.makeText(this, "لازم تسمح باستخدام الكاميرا لتشغيل إشارات اليد.", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun startListening() {
@@ -135,13 +171,13 @@ class MainActivity : Activity() {
 
     private fun launchPackage(pkg: String) {
         val intent = packageManager.getLaunchIntentForPackage(pkg)
-        if (intent != null) startActivity(intent)
-        else Toast.makeText(this, "التطبيق غير مثبت", Toast.LENGTH_SHORT).show()
+        if (intent != null) startActivity(intent) else Toast.makeText(this, "التطبيق غير مثبت", Toast.LENGTH_SHORT).show()
     }
 
     private fun launchIntent(action: String) {
-        try { startActivity(Intent(action)) }
-        catch (_: Exception) { Toast.makeText(this, "تعذر فتح الكاميرا", Toast.LENGTH_SHORT).show() }
+        try { startActivity(Intent(action)) } catch (_: Exception) {
+            Toast.makeText(this, "تعذر فتح الكاميرا", Toast.LENGTH_SHORT).show()
+        }
     }
 
     override fun onDestroy() {
