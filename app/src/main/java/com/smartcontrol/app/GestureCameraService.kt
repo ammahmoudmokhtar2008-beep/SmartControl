@@ -32,7 +32,8 @@ class GestureCameraService : LifecycleService() {
     private val cameraExecutor = Executors.newSingleThreadExecutor()
     private var handLandmarker: HandLandmarker? = null
     private var lastCommandAt = 0L
-    private var previousWristX: Float? = null
+    private var swipeAnchorX: Float? = null
+    private var swipeAnchorAt = 0L
     private var lastSwipeAt = 0L
     private val audio by lazy { getSystemService(Context.AUDIO_SERVICE) as AudioManager }
 
@@ -48,7 +49,7 @@ class GestureCameraService : LifecycleService() {
                 .setMinHandDetectionConfidence(0.55f)
                 .setMinHandPresenceConfidence(0.55f)
                 .setMinTrackingConfidence(0.5f)
-                .setResultListener { result, _ -> onHandResult(result) }
+                .setResultListener { result, inputImage ->\n                    try { onHandResult(result) } finally { inputImage.close() }\n                }
                 .setErrorListener { error -> Log.e(TAG, "Hand tracking error", error) }
                 .build()
             handLandmarker = HandLandmarker.createFromOptions(this, options)
@@ -130,11 +131,15 @@ class GestureCameraService : LifecycleService() {
         val now = SystemClock.elapsedRealtime()
 
         val wristX = points[0].x()
-        val oldX = previousWristX
-        previousWristX = wristX
-        if (oldX != null && abs(wristX - oldX) > 0.20f && now - lastSwipeAt > 1100L) {
+        val anchorX = swipeAnchorX
+        if (anchorX == null || now - swipeAnchorAt > 450L) {
+            swipeAnchorX = wristX
+            swipeAnchorAt = now
+        } else if (abs(wristX - anchorX) > 0.18f && now - lastSwipeAt > 1100L) {
             lastSwipeAt = now
-            ControlAccessibilityService.instance?.swipeHorizontal(wristX < oldX)
+            swipeAnchorX = wristX
+            swipeAnchorAt = now
+            ControlAccessibilityService.instance?.swipeHorizontal(wristX < anchorX)
             return
         }
         if (now - lastCommandAt < 1300L) return
