@@ -16,7 +16,7 @@
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_smartcontrol"
-        android:label="Elsayyad Smart Control"
+        android:label="Smart Control"
         android:roundIcon="@drawable/ic_smartcontrol"
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:supportsRtl="true">
