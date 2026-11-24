@@ -97,129 +97,61 @@ class MainActivity : Activity() {
     private fun buildUi() {
         val page = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(20), dp(24), dp(20), dp(28))
-            background = GradientDrawable(
-                GradientDrawable.Orientation.TOP_BOTTOM,
-                intArrayOf(Color.rgb(10, 18, 38), navy, Color.rgb(8, 13, 28))
-            )
+            setPadding(dp(20), dp(22), dp(20), dp(28))
+            background = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, intArrayOf(Color.rgb(7, 13, 27), Color.rgb(10, 20, 38), Color.rgb(7, 13, 27)))
         }
-
-        val topLine = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
-        val brand = label("الصياد", 30f, white, true).apply { gravity = Gravity.RIGHT }
-        val brandSub = label("SMART CONTROL", 10f, cyan, true).apply {
-            letterSpacing = 0.22f
-            gravity = Gravity.RIGHT
-        }
-        val brandStack = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            addView(brand)
-            addView(brandSub)
-        }
-        val version = label("الإصدار 0.4", 11f, muted).apply {
-            background = rounded(Color.rgb(24, 42, 66), 30f)
-            setPadding(dp(12), dp(7), dp(12), dp(7))
-        }
-        topLine.addView(brandStack, LinearLayout.LayoutParams(0, -2, 1f))
-        topLine.addView(version)
-        page.addView(topLine)
+        val header = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+        val heading = label("SMART CONTROL", 22f, white, true).apply { gravity = Gravity.START; letterSpacing = 0.12f }
+        val version = label("BETA 0.5", 10f, cyan, true).apply { background = rounded(Color.rgb(20, 49, 62), 30f); setPadding(dp(12), dp(7), dp(12), dp(7)) }
+        header.addView(heading, LinearLayout.LayoutParams(0, -2, 1f)); header.addView(version); page.addView(header)
         addGap(page, 22)
-
-        page.addView(label("خلّي إيدك على راحتك…\nوتحكّم في موبايلك بصوتك", 22f, white, true))
-        addGap(page, 8)
-        page.addView(label("أوامرك الصوتية هي الأساس. والإيماءات اختيار إضافي.", 13f, muted))
-        addGap(page, 20)
-
-        val statusCard = card()
-        val statusTitle = label("حالة النظام", 14f, muted, true)
-        status = label("جاهز للتشغيل — فعّل التحكم للبدء", 14f, white)
-        status.setPadding(0, dp(8), 0, 0)
-        statusCard.addView(statusTitle)
-        statusCard.addView(status)
-        page.addView(statusCard)
-        addGap(page, 16)
-
-        val voiceCard = card().apply {
-            background = rounded(Color.rgb(20, 43, 61), 24f, Color.rgb(44, 119, 126))
-        }
-        voiceCard.addView(label("★  التحكم الصوتي", 21f, cyan, true))
-        addGap(voiceCard, 5)
-        voiceCard.addView(label("الميزة الرئيسية", 12f, muted))
-        addGap(voiceCard, 12)
-        voiceState = label("متوقف", 15f, white, true)
-        voiceCard.addView(voiceState)
-        addGap(voiceCard, 8)
-        voiceButton = actionButton("تشغيل الأوامر الصوتية", true)
-        voiceButton.setOnClickListener { toggleVoice() }
-        voiceCard.addView(voiceButton, LinearLayout.LayoutParams(-1, dp(56)))
-        addGap(voiceCard, 10)
-        voiceCard.addView(label("جرّب: افتح واتساب • افتح يوتيوب • ارفع الصوت • ارجع", 12f, muted))
-        page.addView(voiceCard)
-        addGap(page, 16)
-
-        val gestureCard = card()
-        gestureCard.addView(label("إشارات اليد", 18f, white, true))
-        addGap(gestureCard, 4)
-        gestureCard.addView(label("ميزة إضافية — تعمل بالكاميرا الأمامية", 12f, muted))
-        addGap(gestureCard, 8)
-        gestureState = label("متوقفة", 14f, white)
-        gestureCard.addView(gestureState)
-        addGap(gestureCard, 8)
-        gestureButton = actionButton("تشغيل إشارات اليد")
-        gestureButton.setOnClickListener { toggleGestures() }
-        gestureCard.addView(gestureButton, LinearLayout.LayoutParams(-1, dp(52)))
-        page.addView(gestureCard)
-        addGap(page, 16)
-
-        masterButton = actionButton("تفعيل التحكم")
-        masterButton.setOnClickListener { toggleMaster() }
-        page.addView(masterButton, LinearLayout.LayoutParams(-1, dp(54)))
-        addGap(page, 10)
-
+        page.addView(label("تحكّم في موبايلك بصوتك", 25f, white, true))
+        addGap(page, 5); page.addView(label("قول الأمر… وسيتم تنفيذه مباشرة", 14f, muted)); addGap(page, 20)
+        val voiceCard = card().apply { background = rounded(Color.rgb(16, 42, 57), 26f, Color.rgb(42, 139, 139)); setPadding(dp(20), dp(22), dp(20), dp(22)) }
+        voiceCard.addView(label("التحكم الصوتي", 21f, cyan, true)); addGap(voiceCard, 5)
+        voiceCard.addView(label("الميزة الرئيسية • لا تحتاج إلى إمكانية الوصول", 12f, muted)); addGap(voiceCard, 18)
+        voiceState = label("الصوت متوقف", 16f, white, true); voiceCard.addView(voiceState); addGap(voiceCard, 14)
+        voiceButton = actionButton("ابدأ الاستماع", true).apply { textSize = 17f; minHeight = dp(62); setOnClickListener { toggleVoice() } }
+        voiceCard.addView(voiceButton, LinearLayout.LayoutParams(-1, dp(62))); addGap(voiceCard, 12)
+        voiceCard.addView(label("جرّب: افتح واتساب • افتح يوتيوب\nارفع الصوت • اخفض الصوت • افتح الكاميرا", 13f, white))
+        page.addView(voiceCard); addGap(page, 16)
+        val statusCard = card().apply { background = rounded(Color.rgb(17, 27, 45), 20f, Color.rgb(38, 58, 82)) }
+        statusCard.addView(label("حالة التطبيق", 14f, muted, true)); status = label("جاهز — فعّل الاستماع وابدأ الكلام", 14f, white)
+        status.setPadding(0, dp(7), 0, 0); statusCard.addView(status); page.addView(statusCard); addGap(page, 16)
+        val gestureCard = card().apply { background = rounded(Color.rgb(17, 25, 42), 22f, Color.rgb(45, 59, 83)) }
+        gestureCard.addView(label("إشارات اليد", 18f, white, true)); addGap(gestureCard, 4)
+        gestureCard.addView(label("ميزة إضافية اختيارية — تستخدم الكاميرا الأمامية", 12f, muted)); addGap(gestureCard, 9)
+        gestureState = label("الإشارات متوقفة", 13f, white); gestureCard.addView(gestureState); addGap(gestureCard, 9)
+        gestureButton = actionButton("تشغيل إشارات اليد"); gestureButton.setOnClickListener { toggleGestures() }
+        gestureCard.addView(gestureButton, LinearLayout.LayoutParams(-1, dp(52))); addGap(gestureCard, 8)
+        gestureCard.addView(label("تحتاج الكاميرا وخدمة إمكانية الوصول. لو شاومي حظر تفعيلها، يظل التحكم الصوتي مستقلاً ويعمل بدونها.", 11f, muted))
+        page.addView(gestureCard); addGap(page, 16)
+        masterButton = actionButton("إيقاف كل الخدمات"); masterButton.textSize = 13f; masterButton.setOnClickListener { toggleMaster() }
+        page.addView(masterButton, LinearLayout.LayoutParams(-1, dp(48))); addGap(page, 10)
         val settingsRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        val accessButton = actionButton("إعدادات الوصول")
-        accessButton.textSize = 13f
+        val accessButton = actionButton("إعدادات إمكانية الوصول"); accessButton.textSize = 12f
         accessButton.setOnClickListener { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
-        val permissionButton = actionButton("أذونات التطبيق")
-        permissionButton.textSize = 13f
-        permissionButton.setOnClickListener {
-            disableEverything()
-            startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
-            status.text = "أوقفنا الخدمات. راجع أذونات الكاميرا والميكروفون من صفحة التطبيق."
-        }
-        settingsRow.addView(accessButton, LinearLayout.LayoutParams(0, dp(50), 1f).apply { marginEnd = dp(6) })
-        settingsRow.addView(permissionButton, LinearLayout.LayoutParams(0, dp(50), 1f).apply { marginStart = dp(6) })
-        page.addView(settingsRow)
-        addGap(page, 20)
-
-        val help = card()
-        help.addView(label("أوامر تقدر تقولها", 16f, white, true))
-        addGap(help, 8)
-        help.addView(label("«افتح واتساب»  •  «افتح يوتيوب»\n«افتح فيسبوك»  •  «افتح الكاميرا»\n«ارفع الصوت»  •  «اخفض الصوت»\n«مرر لفوق»  •  «مرر لتحت»  •  «ارجع»", 13f, muted))
-        addGap(help, 14)
-        help.addView(label("معلومة مهمة", 14f, cyan, true))
-        help.addView(label("الصوت يقدر يفتح التطبيقات ويتحكم في مستوى الصوت بدون خدمة إمكانية الوصول. أوامر الرجوع والتمرير وبعض وظائف الإيماءات تحتاج تفعيل الخدمة.", 12f, muted))
+        val permissionButton = actionButton("أذونات التطبيق"); permissionButton.textSize = 12f
+        permissionButton.setOnClickListener { disableEverything(); startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName"))); status.text = "تم إيقاف الخدمات. راجع أذونات الكاميرا والميكروفون." }
+        settingsRow.addView(accessButton, LinearLayout.LayoutParams(0, dp(48), 1f).apply { marginEnd = dp(6) })
+        settingsRow.addView(permissionButton, LinearLayout.LayoutParams(0, dp(48), 1f).apply { marginStart = dp(6) })
+        page.addView(settingsRow); addGap(page, 18)
+        val help = card().apply { background = rounded(Color.rgb(13, 22, 38), 20f, Color.rgb(35, 49, 70)) }
+        help.addView(label("أمثلة للأوامر الصوتية", 15f, white, true)); addGap(help, 7)
+        help.addView(label("«افتح واتساب» • «افتح يوتيوب»\n«افتح فيسبوك» • «افتح الكاميرا»\n«ارفع الصوت» • «اخفض الصوت»\n«اكتم الصوت» • «افتح الإعدادات»", 13f, muted))
         page.addView(help)
-
-        val scroll = ScrollView(this).apply {
-            isFillViewport = true
-            clipToPadding = false
-            addView(page)
-        }
+        val scroll = ScrollView(this).apply { isFillViewport = true; clipToPadding = false; addView(page) }
         setContentView(scroll)
     }
-
     private fun refreshButtons() {
-        masterButton.text = if (masterOn()) "إيقاف التحكم بالكامل" else "تفعيل التحكم"
-        voiceButton.text = if (voiceOn()) "إيقاف الأوامر الصوتية" else "تشغيل الأوامر الصوتية"
+        masterButton.text = if (masterOn()) "إيقاف كل الخدمات" else "تفعيل التحكم للإيماءات"
+        voiceButton.text = if (voiceOn()) "إيقاف الاستماع" else "ابدأ الاستماع"
         gestureButton.text = if (gesturesOn()) "إيقاف إشارات اليد" else "تشغيل إشارات اليد"
         voiceState.text = if (voiceOn()) "● الاستماع الصوتي نشط" else "○ الصوت متوقف حالياً"
         gestureState.text = if (gesturesOn()) "● الكاميرا والإيماءات نشطة" else "○ الإيماءات متوقفة حالياً"
-        voiceButton.isEnabled = masterOn()
+        voiceButton.isEnabled = true
         gestureButton.isEnabled = masterOn()
-        voiceButton.alpha = if (masterOn()) 1f else 0.55f
+        voiceButton.alpha = 1f
         gestureButton.alpha = if (masterOn()) 1f else 0.55f
         masterButton.background = rounded(if (masterOn()) Color.rgb(54, 67, 88) else cyan, 15f)
         masterButton.setTextColor(if (masterOn()) white else navy)
@@ -244,10 +176,7 @@ class MainActivity : Activity() {
     }
 
     private fun toggleVoice() {
-        if (!masterOn()) {
-            status.text = "فعّل التحكم العام أولاً."
-            return
-        }
+        if (!masterOn()) prefs.edit().putBoolean("master_on", true).apply()
         if (voiceOn()) {
             prefs.edit().putBoolean("voice_on", false).apply()
             stopService(Intent(this, VoiceControlService::class.java))
